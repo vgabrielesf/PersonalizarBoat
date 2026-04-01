@@ -421,36 +421,21 @@
       // Mobile já inicia com background otimizado (gradiente)
       if (isMobile) {
         scene.background = createSkyGradientTexture();
-        // Carregamento async de texturas em mobile para não bloquear
-        textureLoader.load('assets/Foam.png', (texture) => {
-          foamTexture = texture;
-          foamTexture.wrapS = foamTexture.wrapT = THREE.ClampToEdgeWrapping;
-          foamTexture.repeat.set(1, 1);
-        });
-        textureLoader.load('assets/Teak_flex.png', (texture) => {
-          teakTexture = texture;
-          teakTexture.colorSpace = THREE.SRGBColorSpace;
-          teakTexture.wrapS = teakTexture.wrapT = THREE.RepeatWrapping;
-          teakTexture.repeat.set(2.5, 2.5);
-          teakTexture.magFilter = THREE.LinearFilter;
-          teakTexture.minFilter = THREE.LinearMipmapLinearFilter;
-          teakTexture.anisotropy = 4;
-        });
       } else {
         scene.background = envMap;
-        const foamTexture = textureLoader.load('assets/Foam.png');
-        foamTexture.wrapS = foamTexture.wrapT = THREE.ClampToEdgeWrapping;
-        foamTexture.repeat.set(1, 1);
-        const teakTexture = textureLoader.load('assets/Teak_flex.png');
-        teakTexture.colorSpace = THREE.SRGBColorSpace;
-        teakTexture.wrapS = teakTexture.wrapT = THREE.RepeatWrapping;
-        teakTexture.repeat.set(2.5, 2.5);
-        teakTexture.magFilter = THREE.LinearFilter;
-        teakTexture.minFilter = THREE.LinearMipmapLinearFilter;
-        teakTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
       }
+      
       let foamTexture = textureLoader.load('assets/Foam.png');
+      foamTexture.wrapS = foamTexture.wrapT = THREE.ClampToEdgeWrapping;
+      foamTexture.repeat.set(1, 1);
+      
       let teakTexture = textureLoader.load('assets/Teak_flex.png');
+      teakTexture.colorSpace = THREE.SRGBColorSpace;
+      teakTexture.wrapS = teakTexture.wrapT = THREE.RepeatWrapping;
+      teakTexture.repeat.set(2.5, 2.5);
+      teakTexture.magFilter = THREE.LinearFilter;
+      teakTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      teakTexture.anisotropy = isMobile ? 2 : renderer.capabilities.getMaxAnisotropy();
 
       // --- TEXTURA DO CASCO ---
       const hullTexture = textureLoader.load('Hull_texture.png');
@@ -459,11 +444,11 @@
       hullTexture.repeat.set(2.5, 2.5);
       hullTexture.magFilter = THREE.LinearFilter;
       hullTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      hullTexture.anisotropy = isMobile ? 4 : renderer.capabilities.getMaxAnisotropy();
+      hullTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
       // --- PLANO DE ÁGUA ---
-      // Menos segmentos em mobile
-      const waterSegments = isMobile ? 48 : 128;
+      // Geometria 2x mais simples em mobile
+      const waterSegments = isMobile ? 24 : 128;
       const waterGeometry = new THREE.CircleGeometry(600, waterSegments);
       const waterNormalMap = waterNormal;
       waterNormalMap.repeat.set(40, 40);
@@ -493,55 +478,6 @@
       // Só adiciona água se NÃO for mobile (mobile já inicia otimizado)
       if (!isMobile) {
         scene.add(waterPlane);
-      }
-
-      // Ajusta anisotropy das texturas de estofado em mobile
-      function createUpholsteryMaps() {
-        const size = 512;
-        const colorCanvas = document.createElement('canvas');
-        colorCanvas.width = size; colorCanvas.height = size;
-        const colorCtx = colorCanvas.getContext('2d');
-        const roughCanvas = document.createElement('canvas');
-        roughCanvas.width = size; roughCanvas.height = size;
-        const roughCtx = roughCanvas.getContext('2d');
-        colorCtx.fillStyle = '#c3c0bb'; colorCtx.fillRect(0, 0, size, size);
-        roughCtx.fillStyle = '#8a8a8a'; roughCtx.fillRect(0, 0, size, size);
-        for (let i = 0; i < 9000; i++) {
-          const px = Math.random() * size, py = Math.random() * size, dot = 0.8 + Math.random() * 1.4;
-          colorCtx.fillStyle = `rgba(0,0,0,${0.01 + Math.random() * 0.02})`;
-          colorCtx.fillRect(px, py, dot, dot);
-          roughCtx.fillStyle = `rgba(255,255,255,${0.015 + Math.random() * 0.03})`;
-          roughCtx.fillRect(px, py, dot, dot);
-        }
-        for (let i = 0; i < 40; i++) {
-          const x = Math.random() * size, y = Math.random() * size, len = 18 + Math.random() * 40, ang = Math.random() * Math.PI * 2;
-          const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
-          colorCtx.strokeStyle = `rgba(255,255,255,${0.01 + Math.random() * 0.015})`;
-          colorCtx.lineWidth = 1;
-          colorCtx.beginPath(); colorCtx.moveTo(x, y);
-          colorCtx.quadraticCurveTo((x + x2) * 0.5 + (Math.random() - 0.5) * 8, (y + y2) * 0.5 + (Math.random() - 0.5) * 8, x2, y2);
-          colorCtx.stroke();
-          roughCtx.strokeStyle = `rgba(0,0,0,${0.015 + Math.random() * 0.02})`;
-          roughCtx.lineWidth = 1;
-          roughCtx.beginPath(); roughCtx.moveTo(x, y);
-          roughCtx.quadraticCurveTo((x + x2) * 0.5 + (Math.random() - 0.5) * 8, (y + y2) * 0.5 + (Math.random() - 0.5) * 8, x2, y2);
-          roughCtx.stroke();
-        }
-        const colorMap = new THREE.CanvasTexture(colorCanvas);
-        colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
-        colorMap.repeat.set(2.0, 2.0);
-        colorMap.magFilter = THREE.LinearFilter;
-        colorMap.minFilter = THREE.LinearMipmapLinearFilter;
-        colorMap.anisotropy = isMobile ? 4 : renderer.capabilities.getMaxAnisotropy();
-        colorMap.needsUpdate = true;
-        const roughnessMap = new THREE.CanvasTexture(roughCanvas);
-        roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
-        roughnessMap.repeat.set(2.0, 2.0);
-        roughnessMap.magFilter = THREE.LinearFilter;
-        roughnessMap.minFilter = THREE.LinearMipmapLinearFilter;
-        roughnessMap.anisotropy = isMobile ? 4 : renderer.capabilities.getMaxAnisotropy();
-        roughnessMap.needsUpdate = true;
-        return { colorMap, roughnessMap };
       }
 
       // Ajusta controles para mobile (limita zoom e rotação)
