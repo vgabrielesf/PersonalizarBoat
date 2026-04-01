@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Boat Customizer - Final Lighting Fix</title>
+  <title>Boat Customizer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
   <script type="importmap">
@@ -25,7 +25,6 @@
       width: 100%;
       height: 100%;
       background-color: #1a1a1a;
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect fill="%231a1a1a" width="1" height="1"/></svg>');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -37,6 +36,14 @@
       padding-bottom: 80px;
       will-change: opacity;
       contain: layout style paint;
+    }
+    
+    .loading-logo {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 30px;
+      opacity: 0.9;
+      filter: invert(1) sepia(1) saturate(2.5) hue-rotate(35deg) brightness(1.2);
     }
     
     .loading-container {
@@ -169,6 +176,9 @@
       box-shadow: 0 2px 8px rgba(255,255,255,0.04) inset;
       border-bottom: 2px solid #ffe082;
     }
+    .btn-ui:hover .icon-svg, .btn-ui.active .icon-svg {
+      filter: invert(1) sepia(1) saturate(2) hue-rotate(355deg) brightness(1.1);
+    }
     .color-picker { display: none; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); width: 230px; position: relative; justify-items: center; }
     .color-picker.show { display: grid; }
     @media (max-width: 700px) {
@@ -208,7 +218,6 @@
     #footer.optimized { color: #1a1a1a; }
     .icon-svg { width: 20px; height: 20px; display: inline-block; }
     .btn-ui .icon-svg { filter: brightness(0) invert(1); }
-    .btn-ui:hover .icon-svg, .btn-ui.active .icon-svg { filter: invert(1) sepia(1) saturate(2) hue-rotate(355deg) brightness(1.1); }
     .color-box.remove-box .icon-svg { width: 32px; height: 32px; filter: brightness(0.7); }
   </style>
 </head>
@@ -216,6 +225,7 @@
 
   <div id="loadingScreen">
     <div class="loading-container">
+      <img src="assets/Logo.svg" class="loading-logo" alt="Logo">
       <div class="loading-text">Carregando Cenário...</div>
       <div class="progress-bar-container">
         <div class="progress-bar"></div>
@@ -273,8 +283,8 @@
       <div class="color-box" style="background: #4f3a20;" data-color="#4f3a20"></div>
     </div>
 
-    <button id="btnOptimize" class="btn-ui" style="background: #222; color: #fff;"><img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Otimizar</button>
-    <button id="btnToggleUI" class="btn-ui" style="background: #222; color: #fff;"><img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Esconder UI</button>
+    <button id="btnOptimize" class="btn-ui"><img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Otimizar</button>
+    <button id="btnToggleUI" class="btn-ui"><img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Esconder UI</button>
   </div>
 
   <div id="footer">Feito por Vitoria Gabriele</div>
@@ -286,12 +296,7 @@
     import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
     // --- PRÉ-CARREGAR IMAGEM DE FUNDO ---
-    const preloadImage = new Image();
-    preloadImage.onload = () => {
-      // Quando a imagem carregar, aplicar ela no background
-      document.getElementById('loadingScreen').style.backgroundImage = "url('assets/tela.png')";
-    };
-    preloadImage.src = 'assets/tela.png';
+    // Removido para melhorar performance
 
     // --- CONTROLE DE CARREGAMENTO ---
     const loadingScreen = document.getElementById('loadingScreen');
@@ -1135,6 +1140,7 @@
       // Se mobile, já atualiza o botão e footer no estado otimizado
       if (isMobile) {
         btnOptimize.innerHTML = '<img src="assets/visibility.svg" class="icon-svg" alt="Visibility"> Ativar Ambiente';
+        btnOptimize.classList.add('active');
         footer.classList.add('optimized');
       }
       btnOptimize.onclick = () => {
@@ -1144,6 +1150,7 @@
           if (waterPlane && scene.children.includes(waterPlane)) scene.remove(waterPlane);
           if (foamPlane && scene.children.includes(foamPlane)) scene.remove(foamPlane);
           btnOptimize.innerHTML = '<img src="assets/visibility.svg" class="icon-svg" alt="Visibility"> Ativar Ambiente';
+          btnOptimize.classList.add('active');
           footer.classList.add('optimized');
           ambienteOtimizado = true;
         } else {
@@ -1152,6 +1159,7 @@
           if (waterPlane && !scene.children.includes(waterPlane)) scene.add(waterPlane);
           if (foamPlane && !scene.children.includes(foamPlane)) scene.add(foamPlane);
           btnOptimize.innerHTML = '<img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Otimizar';
+          btnOptimize.classList.remove('active');
           footer.classList.remove('optimized');
           ambienteOtimizado = false;
         }
@@ -1166,8 +1174,11 @@
         if (uiVisible) {
           controlsContainer.style.display = 'flex';
           btnToggleUI.innerHTML = '<img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Esconder UI';
+          btnToggleUI.classList.remove('active');
         } else {
           controlsContainer.style.display = 'none';
+          btnToggleUI.classList.add('active');
+          btnToggleUI.innerHTML = '<img src="assets/visibility.svg" class="icon-svg" alt="Visibility"> Mostrar UI';
           // Mostra um pequeno botão flutuante para reativar
           const toggleBtn = document.createElement('button');
           toggleBtn.id = 'floatingToggle';
@@ -1177,6 +1188,7 @@
             uiVisible = true;
             controlsContainer.style.display = 'flex';
             btnToggleUI.innerHTML = '<img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Esconder UI';
+            btnToggleUI.classList.remove('active');
             toggleBtn.remove();
           };
           document.body.appendChild(toggleBtn);
