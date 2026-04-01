@@ -1096,10 +1096,9 @@
       let ambienteOtimizado = isMobile ? true : false; // Já inicia otimizado no mobile
       const btnOptimize = document.getElementById('btnOptimize');
       const footer = document.getElementById('footer');
-      // Se mobile, já atualiza o botão e footer no estado otimizado
+      // Se mobile, já atualiza o estado mas não a classe 'active' visual
       if (isMobile) {
         btnOptimize.innerHTML = '<img src="assets/visibility.svg" class="icon-svg" alt="Visibility"> Ativar Ambiente';
-        btnOptimize.classList.add('active');
         footer.classList.add('optimized');
       }
       btnOptimize.onclick = () => {
@@ -1109,7 +1108,6 @@
           if (waterPlane && scene.children.includes(waterPlane)) scene.remove(waterPlane);
           if (foamPlane && scene.children.includes(foamPlane)) scene.remove(foamPlane);
           btnOptimize.innerHTML = '<img src="assets/visibility.svg" class="icon-svg" alt="Visibility"> Ativar Ambiente';
-          btnOptimize.classList.add('active');
           footer.classList.add('optimized');
           ambienteOtimizado = true;
         } else {
@@ -1118,7 +1116,6 @@
           if (waterPlane && !scene.children.includes(waterPlane)) scene.add(waterPlane);
           if (foamPlane && !scene.children.includes(foamPlane)) scene.add(foamPlane);
           btnOptimize.innerHTML = '<img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Otimizar';
-          btnOptimize.classList.remove('active');
           footer.classList.remove('optimized');
           ambienteOtimizado = false;
         }
