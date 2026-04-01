@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Boat Customizer</title>
+  <title>Boat Customizer - Final Lighting Fix</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
   <script type="importmap">
@@ -408,9 +408,11 @@
 
       // Ajusta renderer para mobile
       if (isMobile) {
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.2)); // Reduzido de 1.5
         renderer.setSize(window.innerWidth, window.innerHeight, false);
-        renderer.toneMappingExposure = 1.0;
+        renderer.toneMappingExposure = 0.95;
+        // Habilita power preference para melhor performance
+        renderer.info.autoReset = false;
       }
 
       // Carrega texturas
@@ -419,19 +421,36 @@
       // Mobile já inicia com background otimizado (gradiente)
       if (isMobile) {
         scene.background = createSkyGradientTexture();
+        // Carregamento async de texturas em mobile para não bloquear
+        textureLoader.load('assets/Foam.png', (texture) => {
+          foamTexture = texture;
+          foamTexture.wrapS = foamTexture.wrapT = THREE.ClampToEdgeWrapping;
+          foamTexture.repeat.set(1, 1);
+        });
+        textureLoader.load('assets/Teak_flex.png', (texture) => {
+          teakTexture = texture;
+          teakTexture.colorSpace = THREE.SRGBColorSpace;
+          teakTexture.wrapS = teakTexture.wrapT = THREE.RepeatWrapping;
+          teakTexture.repeat.set(2.5, 2.5);
+          teakTexture.magFilter = THREE.LinearFilter;
+          teakTexture.minFilter = THREE.LinearMipmapLinearFilter;
+          teakTexture.anisotropy = 4;
+        });
       } else {
         scene.background = envMap;
+        const foamTexture = textureLoader.load('assets/Foam.png');
+        foamTexture.wrapS = foamTexture.wrapT = THREE.ClampToEdgeWrapping;
+        foamTexture.repeat.set(1, 1);
+        const teakTexture = textureLoader.load('assets/Teak_flex.png');
+        teakTexture.colorSpace = THREE.SRGBColorSpace;
+        teakTexture.wrapS = teakTexture.wrapT = THREE.RepeatWrapping;
+        teakTexture.repeat.set(2.5, 2.5);
+        teakTexture.magFilter = THREE.LinearFilter;
+        teakTexture.minFilter = THREE.LinearMipmapLinearFilter;
+        teakTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
       }
-      const foamTexture = textureLoader.load('assets/Foam.png');
-      foamTexture.wrapS = foamTexture.wrapT = THREE.ClampToEdgeWrapping;
-      foamTexture.repeat.set(1, 1);
-      const teakTexture = textureLoader.load('assets/Teak_flex.png');
-      teakTexture.colorSpace = THREE.SRGBColorSpace;
-      teakTexture.wrapS = teakTexture.wrapT = THREE.RepeatWrapping;
-      teakTexture.repeat.set(2.5, 2.5);
-      teakTexture.magFilter = THREE.LinearFilter;
-      teakTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      teakTexture.anisotropy = isMobile ? 4 : renderer.capabilities.getMaxAnisotropy();
+      let foamTexture = textureLoader.load('assets/Foam.png');
+      let teakTexture = textureLoader.load('assets/Teak_flex.png');
 
       // --- TEXTURA DO CASCO ---
       const hullTexture = textureLoader.load('Hull_texture.png');
@@ -601,7 +620,7 @@
 
       // --- MAPAS DE ESTOFADO (gerados uma vez) ---
       function createUpholsteryMaps() {
-        const size = 512;
+        const size = isMobile ? 256 : 512; // Metade em mobile
         const colorCanvas = document.createElement('canvas');
         colorCanvas.width = size; colorCanvas.height = size;
         const colorCtx = colorCanvas.getContext('2d');
@@ -610,14 +629,16 @@
         const roughCtx = roughCanvas.getContext('2d');
         colorCtx.fillStyle = '#c3c0bb'; colorCtx.fillRect(0, 0, size, size);
         roughCtx.fillStyle = '#8a8a8a'; roughCtx.fillRect(0, 0, size, size);
-        for (let i = 0; i < 9000; i++) {
+        const dotCount = isMobile ? 4000 : 9000; // Menos detalhes em mobile
+        for (let i = 0; i < dotCount; i++) {
           const px = Math.random() * size, py = Math.random() * size, dot = 0.8 + Math.random() * 1.4;
           colorCtx.fillStyle = `rgba(0,0,0,${0.01 + Math.random() * 0.02})`;
           colorCtx.fillRect(px, py, dot, dot);
           roughCtx.fillStyle = `rgba(255,255,255,${0.015 + Math.random() * 0.03})`;
           roughCtx.fillRect(px, py, dot, dot);
         }
-        for (let i = 0; i < 40; i++) {
+        const lineCount = isMobile ? 15 : 40; // Menos linhas em mobile
+        for (let i = 0; i < lineCount; i++) {
           const x = Math.random() * size, y = Math.random() * size, len = 18 + Math.random() * 40, ang = Math.random() * Math.PI * 2;
           const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
           colorCtx.strokeStyle = `rgba(255,255,255,${0.01 + Math.random() * 0.015})`;
@@ -636,14 +657,14 @@
         colorMap.repeat.set(2.0, 2.0);
         colorMap.magFilter = THREE.LinearFilter;
         colorMap.minFilter = THREE.LinearMipmapLinearFilter;
-        colorMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        colorMap.anisotropy = isMobile ? 2 : renderer.capabilities.getMaxAnisotropy();
         colorMap.needsUpdate = true;
         const roughnessMap = new THREE.CanvasTexture(roughCanvas);
         roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
         roughnessMap.repeat.set(2.0, 2.0);
         roughnessMap.magFilter = THREE.LinearFilter;
         roughnessMap.minFilter = THREE.LinearMipmapLinearFilter;
-        roughnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        roughnessMap.anisotropy = isMobile ? 2 : renderer.capabilities.getMaxAnisotropy();
         roughnessMap.needsUpdate = true;
         return { colorMap, roughnessMap };
       }
@@ -653,6 +674,7 @@
 
       const dracoLoader = new DRACOLoader();
       dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+      dracoLoader.preload(); // Pré-carrega o decoder
       const loader = new GLTFLoader();
       loader.setDRACOLoader(dracoLoader);
       loader.load('assets/model7.glb', (gltf) => {
