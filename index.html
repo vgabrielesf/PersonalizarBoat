@@ -1040,8 +1040,11 @@
 
       document.querySelectorAll('.color-box').forEach(box => {
           box.onclick = (e) => {
-              const color = e.target.getAttribute('data-color');
-              const parentId = e.target.parentElement.id;
+              // Encontra o .color-box mais próximo (pode estar clicando no SVG dentro dele)
+              const colorBox = e.target.closest('.color-box');
+              const color = colorBox.getAttribute('data-color');
+              const action = colorBox.getAttribute('data-action');
+              const parentId = colorBox.parentElement.id;
               if (parentId === 'pickerSofas') {
                 applyColor(objSofas, color, {
                   emissiveScalar: 0.14,
@@ -1072,9 +1075,10 @@
                 applyDeckTexture(objDeck, currentDeckColor);
               }
               if (parentId === 'pickerHardTop') {
-                const action = e.target.getAttribute('data-action');
                 if (action === 'remove-hardtop') {
-                  setHardTopVisibility(!isHardTopVisible());
+                  // Alterna a visibilidade do hard top
+                  const currentlyVisible = isHardTopVisible();
+                  setHardTopVisibility(!currentlyVisible);
                   return;
                 }
 
