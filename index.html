@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Boat Customizer - Final Lighting Fix</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.156.1/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.156.1/examples/jsm/"
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; font-family: 'Poppins', Arial, sans-serif; background: #000; }
+    
+    /* TELA DE CARREGAMENTO */
+    #loadingScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('assets/tela.png') center / cover no-repeat;
+      background-size: cover;
+      background-position: center;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 80px;
+    }
+    
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px; /* Reduzido para 4px para aproximar todos os elementos */
+      max-width: 90%;
+      width: 280px;
+    }
+    
+    .loading-text {
+      color: white;
+      font-size: 12px;
+      font-family: 'Poppins', Arial, sans-serif;
+      font-weight: 300;
+      letter-spacing: 0.5px;
+      text-align: center;
+      height: 12px;
+      line-height: 12px;
+      margin-bottom: 2px; /* Reduzido de 2px para 0px */
+    }
+    
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4da6ff, #80d4ff, #4da6ff);
+      background-size: 200% 100%;
+      border-radius: 10px;
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 12px rgba(77, 166, 255, 0.6);
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0%, 100% { background-position: 200% 0; }
+      50% { background-position: -200% 0; }
+    }
+    
+    .loading-percentage {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      margin-top: 2px; /* Aproxima a porcentagem da barra */
+    }
+    
+    @media (max-width: 700px) {
+      #loadingScreen {
+        padding-bottom: 60px;
+      }
+      
+      .loading-container {
+        width: 85%;
+        max-width: 250px;
+        gap: 5px; /* Igual ao desktop */
+      }
+      
+      .loading-text {
+        font-size: 14px;
+      }
+      
+      .progress-bar-container {
+        height: 5px;
+      }
+    }
+    
+    #info { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); color: white; background: rgba(0,0,0,0.8); padding: 12px 20px; border-radius: 30px; z-index: 100; font-size: 14px; pointer-events: none; }
+    .controls-container { position: absolute; top: 20px; left: 20px; z-index: 101; display: flex; flex-direction: column; gap: 8px; max-height: 80vh; overflow-y: auto; padding-right: 10px; }
+    .btn-ui {
+      padding: 13px 20px;
+      border-radius: 14px;
+      border: none;
+      background: #222;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 3px 10px rgba(60,70,90,0.13), 0 1.5px 4px rgba(255,255,255,0.03) inset;
+      width: 260px;
+      transition: all 0.22s cubic-bezier(.4,0,.2,1);
+      letter-spacing: 0.01em;
+      border-bottom: 2px solid #8fa7c2;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    @media (max-width: 700px) {
+      .controls-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 98vw;
+        left: 1vw;
+        top: 10px;
+        max-height: none;
+        padding-right: 0;
+        gap: 6px;
+      }
+      .btn-ui {
+        width: 48%;
+        justify-content: center;
+        flex-basis: 48%;
+      }
+    }
+    .btn-ui::after {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: linear-gradient(120deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 100%);
+      pointer-events: none;
+      border-radius: 14px;
+    }
+    .btn-ui:hover, .btn-ui.active {
+      background: #444;
+      color: #ffe082;
+      box-shadow: 0 2px 8px rgba(255,255,255,0.04) inset;
+      border-bottom: 2px solid #ffe082;
+    }
+    .color-picker { display: none; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); width: 230px; position: relative; justify-items: center; }
+    .color-picker.show { display: grid; }
+    @media (max-width: 700px) {
+      .color-picker {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 40px);
+        max-width: 280px;
+        flex-basis: 100%;
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-left: 0;
+        margin-right: 0;
+      }
+      .color-picker.show {
+        display: grid;
+      }
+    }
+    .color-box { width: 45px; height: 45px; border-radius: 8px; cursor: pointer; border: 2px solid #d1d1d1; box-sizing: border-box; }
+    .color-box.remove-box {
+      background: #ffffff;
+      color: #b8b8b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-color: #b8b8b8;
+    }
+    .color-box.remove-box .material-symbols-outlined {
+      font-size: 32px;
+      font-weight: 500;
+      line-height: 1;
+      pointer-events: none;
+    }
+    #footer { position: fixed; bottom: 15px; width: 100%; color: #ffffff; text-align: center; font-size: 12px; z-index: 100; pointer-events: none; font-weight: 300; transition: color 0.3s ease; font-family: 'Poppins', Arial, sans-serif; }
+    #footer.optimized { color: #1a1a1a; }
+    .icon-svg { width: 20px; height: 20px; display: inline-block; }
+    .btn-ui .icon-svg { filter: brightness(0) invert(1); }
+    .btn-ui:hover .icon-svg, .btn-ui.active .icon-svg { filter: invert(1) sepia(1) saturate(2) hue-rotate(355deg) brightness(1.1); }
+    .color-box.remove-box .icon-svg { width: 32px; height: 32px; filter: brightness(0.7); }
+  </style>
+</head>
+<body>
+
+  <div id="loadingScreen">
+    <div class="loading-container">
+      <div class="loading-text">Carregando Cenário...</div>
+      <div class="progress-bar-container">
+        <div class="progress-bar"></div>
+      </div>
+      <div class="loading-percentage">0%</div>
+    </div>
+  </div>
+
+  <div id="info">Carregando Cenário...</div>
+
+  <div class="controls-container">
+    <button id="btnSofas" class="btn-ui"><img src="assets/chair.svg" class="icon-svg" alt="Chair"> Cor do Estofado</button>
+    <div id="pickerSofas" class="color-picker">
+      <div class="color-box" style="background: #e6dac4;" data-color="#e6dac4"></div> <!-- Creme -->
+      <div class="color-box" style="background: #c69c6d;" data-color="#c69c6d"></div> <!-- Caramelo claro -->
+      <div class="color-box" style="background: #7a4d25;" data-color="#7a4d25"></div> <!-- Marrom -->
+      <div class="color-box" style="background: #708090;" data-color="#708090"></div> <!-- Cinza escuro -->
+      <div class="color-box" style="background: #22304a;" data-color="#22304a"></div> <!-- Azul marinho -->
+      <div class="color-box" style="background: #3a5d3a;" data-color="#3a5d3a"></div> <!-- Verde -->
+      <div class="color-box" style="background: #4a0404;" data-color="#4a0404"></div> <!-- Vermelho -->
+
+      <div class="color-box" style="background: #1a1a1a;" data-color="#1a1a1a"></div> <!-- Preto -->
+    </div>
+
+    <button id="btnExterno" class="btn-ui"><img src="assets/directions_boat.svg" class="icon-svg" alt="Boat"> Cor do Casco</button>
+    <div id="pickerExterno" class="color-picker">
+      <div class="color-box" style="background: #909aa3;" data-color="#909aa3"></div>
+      <div class="color-box" style="background: #0d2a3d;" data-color="#0d2a3d"></div>
+      <div class="color-box" style="background: #102040;" data-color="#102040"></div>
+      <div class="color-box" style="background: #4a0404;" data-color="#4a0404"></div>
+      <div class="color-box" style="background: #3d2415;" data-color="#3d2415"></div>
+      <div class="color-box" style="background: #1f3a28;" data-color="#1f3a28"></div>
+      <div class="color-box" style="background: #4a3820;" data-color="#4a3820"></div>
+      <div class="color-box" style="background: #111111;" data-color="#111111"></div>
+    </div>
+
+    <button id="btnDeck" class="btn-ui"><img src="assets/deck.svg" class="icon-svg" alt="Deck"> Deck</button>
+    <div id="pickerDeck" class="color-picker">
+      <div class="color-box" style="background: #a17b55;" data-color="#a17b55"></div>
+      <div class="color-box" style="background: #8b6a47;" data-color="#8b6a47"></div>
+      <div class="color-box" style="background: #735437;" data-color="#735437"></div>
+      <div class="color-box" style="background: #5f4630;" data-color="#5f4630"></div>
+      
+    </div>
+
+    <button id="btnHardTop" class="btn-ui"><img src="assets/roofing.svg" class="icon-svg" alt="Roofing"> Hard top</button>
+    <div id="pickerHardTop" class="color-picker">
+      <div class="color-box remove-box" data-action="remove-hardtop"><img src="assets/close.svg" class="icon-svg" alt="Close"></div>
+      <div class="color-box" style="background: #909aa3;" data-color="#909aa3"></div>
+      <div class="color-box" style="background: #1f2f43;" data-color="#1f2f43"></div>
+      <div class="color-box" style="background: #4a0404;" data-color="#4a0404"></div>
+      <div class="color-box" style="background: #7d7d7d;" data-color="#7d7d7d"></div>
+      <div class="color-box" style="background: #111111;" data-color="#111111"></div>
+      <div class="color-box" style="background: #0d4f3f;" data-color="#0d4f3f"></div>
+      <div class="color-box" style="background: #4f3a20;" data-color="#4f3a20"></div>
+    </div>
+
+    <button id="btnOptimize" class="btn-ui" style="background: #222; color: #fff;"><img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Otimizar</button>
+    <button id="btnToggleUI" class="btn-ui" style="background: #222; color: #fff;"><img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Esconder UI</button>
+  </div>
+
+  <div id="footer">Feito por Vitoria Gabriele</div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+    // --- CONTROLE DE CARREGAMENTO ---
+    const loadingScreen = document.getElementById('loadingScreen');
+    const progressBar = document.querySelector('.progress-bar');
+    const loadingPercentage = document.querySelector('.loading-percentage');
+    let currentProgress = 0;
+    
+    function updateProgress(percent) {
+      currentProgress = percent;
+      progressBar.style.width = currentProgress + '%';
+      loadingPercentage.textContent = Math.round(currentProgress) + '%';
+    }
+    
+    // Simula progresso durante carregamento
+    function simulateProgress() {
+      if (currentProgress < 90) {
+        updateProgress(currentProgress + Math.random() * 30);
+      }
+    }
+    
+    const progressInterval = setInterval(simulateProgress, 500);
+    
+    function completeLoading() {
+      clearInterval(progressInterval);
+      updateProgress(100);
+      setTimeout(() => {
+        loadingScreen.style.opacity = '0';
+        loadingScreen.style.transition = 'opacity 0.6s ease';
+        setTimeout(() => {
+          loadingScreen.style.display = 'none';
+        }, 600);
+      }, 300);
+    }
+
+    // --- CONSTANTES E LOADERS COMPARTILHADOS ---
+    const scene = new THREE.Scene();
+    const BOAT_LAYER = 1;
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(15, 18, 25);
+    camera.layers.enable(BOAT_LAYER);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.04; // Ajuste de exposição do renderer
+    document.body.appendChild(renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 5, 0); // Alvo mais baixo
+    controls.enableDamping = true;
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.minDistance = 1;
+    controls.maxDistance = 40;
+    controls.enablePan = true; // Pan habilitado por padrão
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN // Pan apenas com botão direito
+    };
+    controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY // Remove pan do mobile
+    };
+
+    // --- TEXTURAS COMPARTILHADAS ---
+    const textureLoader = new THREE.TextureLoader();
+    const waterNormal = textureLoader.load('assets/3dpea.com_Water_normal.png');
+    waterNormal.wrapS = waterNormal.wrapT = THREE.RepeatWrapping;
+    waterNormal.repeat.set(4, 4);
+    waterNormal.magFilter = THREE.LinearFilter;
+    waterNormal.minFilter = THREE.LinearMipmapLinearFilter;
+    waterNormal.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    // Carregar envMap como Promise para garantir que está pronto antes do modelo
+    function loadEnvMap(url) {
+      return new Promise((resolve) => {
+        textureLoader.load(url, (texture) => {
+          texture.mapping = THREE.EquirectangularReflectionMapping;
+          resolve(texture);
+        });
+      });
+    }
+
+    (async function main() {
+      // Detecta mobile/tela pequena
+      const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth < 700;
+
+      // Ajusta renderer para mobile
+      if (isMobile) {
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+        renderer.toneMappingExposure = 1.0;
+      }
+
+      // Carrega texturas
+      const envMap = await loadEnvMap('assets/3dpea.com_environment.png');
+      scene.environment = envMap;
+      scene.background = envMap;
+      const foamTexture = textureLoader.load('assets/Foam.png');
+      foamTexture.wrapS = foamTexture.wrapT = THREE.ClampToEdgeWrapping;
+      foamTexture.repeat.set(1, 1);
+      const teakTexture = textureLoader.load('assets/Teak_flex.png');
+      teakTexture.colorSpace = THREE.SRGBColorSpace;
+      teakTexture.wrapS = teakTexture.wrapT = THREE.RepeatWrapping;
+      teakTexture.repeat.set(2.5, 2.5);
+      teakTexture.magFilter = THREE.LinearFilter;
+      teakTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      teakTexture.anisotropy = isMobile ? 4 : renderer.capabilities.getMaxAnisotropy();
+
+      // --- TEXTURA DO CASCO ---
+      const hullTexture = textureLoader.load('Hull_texture.png');
+      hullTexture.colorSpace = THREE.SRGBColorSpace;
+      hullTexture.wrapS = hullTexture.wrapT = THREE.RepeatWrapping;
+      hullTexture.repeat.set(2.5, 2.5);
+      hullTexture.magFilter = THREE.LinearFilter;
+      hullTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      hullTexture.anisotropy = isMobile ? 4 : renderer.capabilities.getMaxAnisotropy();
+
+      // --- PLANO DE ÁGUA ---
+      // Menos segmentos em mobile
+      const waterSegments = isMobile ? 48 : 128;
+      const waterGeometry = new THREE.CircleGeometry(600, waterSegments);
+      const waterNormalMap = waterNormal;
+      waterNormalMap.repeat.set(40, 40);
+      const waterMaterial = new THREE.MeshPhysicalMaterial({
+        color: 0x02070d,
+        metalness: 0.5,
+        roughness: 0.26,
+        transmission: 0.95,
+        thickness: 100.0,
+        ior: 1.33,
+        transparent: true,
+        opacity: 0.9,
+        normalMap: waterNormalMap,
+        normalScale: new THREE.Vector2(0.6, 0.6),
+        emissive: new THREE.Color(0x2d557c),
+        emissiveIntensity: 0.16,
+        envMap: envMap,
+        envMapIntensity: 0.82
+      });
+      if (waterMaterial.normalMap) {
+        waterMaterial.normalMap.offset.x = Math.random();
+        waterMaterial.normalMap.offset.y = Math.random();
+      }
+      const waterPlane = new THREE.Mesh(waterGeometry, waterMaterial);
+      waterPlane.rotation.x = -Math.PI / 2;
+      waterPlane.position.y = 1;
+      scene.add(waterPlane);
+
+      // Ajusta anisotropy das texturas de estofado em mobile
+      function createUpholsteryMaps() {
+        const size = 512;
+        const colorCanvas = document.createElement('canvas');
+        colorCanvas.width = size; colorCanvas.height = size;
+        const colorCtx = colorCanvas.getContext('2d');
+        const roughCanvas = document.createElement('canvas');
+        roughCanvas.width = size; roughCanvas.height = size;
+        const roughCtx = roughCanvas.getContext('2d');
+        colorCtx.fillStyle = '#c3c0bb'; colorCtx.fillRect(0, 0, size, size);
+        roughCtx.fillStyle = '#8a8a8a'; roughCtx.fillRect(0, 0, size, size);
+        for (let i = 0; i < 9000; i++) {
+          const px = Math.random() * size, py = Math.random() * size, dot = 0.8 + Math.random() * 1.4;
+          colorCtx.fillStyle = `rgba(0,0,0,${0.01 + Math.random() * 0.02})`;
+          colorCtx.fillRect(px, py, dot, dot);
+          roughCtx.fillStyle = `rgba(255,255,255,${0.015 + Math.random() * 0.03})`;
+          roughCtx.fillRect(px, py, dot, dot);
+        }
+        for (let i = 0; i < 40; i++) {
+          const x = Math.random() * size, y = Math.random() * size, len = 18 + Math.random() * 40, ang = Math.random() * Math.PI * 2;
+          const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
+          colorCtx.strokeStyle = `rgba(255,255,255,${0.01 + Math.random() * 0.015})`;
+          colorCtx.lineWidth = 1;
+          colorCtx.beginPath(); colorCtx.moveTo(x, y);
+          colorCtx.quadraticCurveTo((x + x2) * 0.5 + (Math.random() - 0.5) * 8, (y + y2) * 0.5 + (Math.random() - 0.5) * 8, x2, y2);
+          colorCtx.stroke();
+          roughCtx.strokeStyle = `rgba(0,0,0,${0.015 + Math.random() * 0.02})`;
+          roughCtx.lineWidth = 1;
+          roughCtx.beginPath(); roughCtx.moveTo(x, y);
+          roughCtx.quadraticCurveTo((x + x2) * 0.5 + (Math.random() - 0.5) * 8, (y + y2) * 0.5 + (Math.random() - 0.5) * 8, x2, y2);
+          roughCtx.stroke();
+        }
+        const colorMap = new THREE.CanvasTexture(colorCanvas);
+        colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
+        colorMap.repeat.set(2.0, 2.0);
+        colorMap.magFilter = THREE.LinearFilter;
+        colorMap.minFilter = THREE.LinearMipmapLinearFilter;
+        colorMap.anisotropy = isMobile ? 4 : renderer.capabilities.getMaxAnisotropy();
+        colorMap.needsUpdate = true;
+        const roughnessMap = new THREE.CanvasTexture(roughCanvas);
+        roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
+        roughnessMap.repeat.set(2.0, 2.0);
+        roughnessMap.magFilter = THREE.LinearFilter;
+        roughnessMap.minFilter = THREE.LinearMipmapLinearFilter;
+        roughnessMap.anisotropy = isMobile ? 4 : renderer.capabilities.getMaxAnisotropy();
+        roughnessMap.needsUpdate = true;
+        return { colorMap, roughnessMap };
+      }
+
+      // Ajusta controles para mobile (limita zoom e rotação)
+      if (isMobile) {
+        // Permitir pan e zoom normalmente no mobile
+        controls.enablePan = true; // Restaurar pan
+        controls.screenSpacePanning = true;
+        controls.maxDistance = 60; // Mantém afastamento do zoom
+        controls.minDistance = 2; // Permite aproximar mais
+        controls.enableZoom = true;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.18; // Resposta mais rápida
+        controls.rotateSpeed = 1.1; // Rotação mais responsiva
+        controls.zoomSpeed = 1.2; // Zoom mais responsivo
+        // Permitir pinça para zoom (padrão do OrbitControls)
+        controls.touches = {
+          ONE: THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY_PAN // Pinça para zoom e pan
+        };
+      }
+
+      // --- LUZES ---
+      scene.add(new THREE.AmbientLight(0xffffff, 1.18)); // levemente mais forte
+      const hemiLight = new THREE.HemisphereLight(0xffffff, 0x5b6f8f, 0.38); // menos intensa
+      scene.add(hemiLight);
+      const sunLight = new THREE.DirectionalLight(0xffffff, 1.05); // menos intensa
+      sunLight.position.set(-38, 62, 22);
+      sunLight.target.position.set(0, 4, 0);
+      scene.add(sunLight.target, sunLight);
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.62); // menos intensa
+      fillLight.position.set(30, 42, -16);
+      fillLight.target.position.set(0, 3, 0);
+      scene.add(fillLight.target, fillLight);
+      const waterFrontLight = new THREE.DirectionalLight(0xeaf3ff, 1.35); // menos intensa
+      waterFrontLight.position.set(-34, 112, 24);
+      waterFrontLight.target.position.set(0, 3.5, 0);
+      scene.add(waterFrontLight.target, waterFrontLight);
+      const waterFrontFillLight = new THREE.DirectionalLight(0xd9ecff, 0.95); // menos intensa
+      waterFrontFillLight.position.set(-12, 78, 56);
+      waterFrontFillLight.target.position.set(0, 3.5, 0);
+      scene.add(waterFrontFillLight.target, waterFrontFillLight);
+      const waterTopSoftLight = new THREE.DirectionalLight(0xf1f7ff, 0.38); // menos intensa
+      waterTopSoftLight.position.set(0, 160, 26);
+      waterTopSoftLight.target.position.set(0, 3.5, 0);
+      scene.add(waterTopSoftLight.target, waterTopSoftLight);
+      const boatUniformLight = new THREE.AmbientLight(0xffffff, 1.18); // menos intensa
+      boatUniformLight.layers.set(BOAT_LAYER);
+      scene.add(boatUniformLight);
+
+      // --- ESPUMA ---
+      const foamGeometry = new THREE.PlaneGeometry(155, 36);
+      const foamMaterial = new THREE.MeshStandardMaterial({
+        map: foamTexture,
+        transparent: true,
+        opacity: 0.46,
+        depthWrite: false,
+        roughness: 1.0,
+        metalness: 0.0,
+        side: THREE.DoubleSide
+      });
+      const foamPlane = new THREE.Mesh(foamGeometry, foamMaterial);
+      foamPlane.rotation.x = -Math.PI / 2;
+      foamPlane.position.set(-65.0, 1.08, 0);
+      scene.add(foamPlane);
+
+      // --- OBJETOS E TEXTURAS DE ESTOFADO ---
+      const objSofas = [], objExterno = [], objTampas = [], objDeck = [];
+      const objHardTop = [], objHardTopBase = [], objHardTopNoColor = [], objSemTop = [];
+      let loadedModel = null;
+      const HULL_BASE_WHITE = '#909aa3'; // Branco acinzetado inicial
+      let currentHullColor = HULL_BASE_WHITE;
+      let currentDeckColor = '#a17b55';
+
+      // --- MAPAS DE ESTOFADO (gerados uma vez) ---
+      function createUpholsteryMaps() {
+        const size = 512;
+        const colorCanvas = document.createElement('canvas');
+        colorCanvas.width = size; colorCanvas.height = size;
+        const colorCtx = colorCanvas.getContext('2d');
+        const roughCanvas = document.createElement('canvas');
+        roughCanvas.width = size; roughCanvas.height = size;
+        const roughCtx = roughCanvas.getContext('2d');
+        colorCtx.fillStyle = '#c3c0bb'; colorCtx.fillRect(0, 0, size, size);
+        roughCtx.fillStyle = '#8a8a8a'; roughCtx.fillRect(0, 0, size, size);
+        for (let i = 0; i < 9000; i++) {
+          const px = Math.random() * size, py = Math.random() * size, dot = 0.8 + Math.random() * 1.4;
+          colorCtx.fillStyle = `rgba(0,0,0,${0.01 + Math.random() * 0.02})`;
+          colorCtx.fillRect(px, py, dot, dot);
+          roughCtx.fillStyle = `rgba(255,255,255,${0.015 + Math.random() * 0.03})`;
+          roughCtx.fillRect(px, py, dot, dot);
+        }
+        for (let i = 0; i < 40; i++) {
+          const x = Math.random() * size, y = Math.random() * size, len = 18 + Math.random() * 40, ang = Math.random() * Math.PI * 2;
+          const x2 = x + Math.cos(ang) * len, y2 = y + Math.sin(ang) * len;
+          colorCtx.strokeStyle = `rgba(255,255,255,${0.01 + Math.random() * 0.015})`;
+          colorCtx.lineWidth = 1;
+          colorCtx.beginPath(); colorCtx.moveTo(x, y);
+          colorCtx.quadraticCurveTo((x + x2) * 0.5 + (Math.random() - 0.5) * 8, (y + y2) * 0.5 + (Math.random() - 0.5) * 8, x2, y2);
+          colorCtx.stroke();
+          roughCtx.strokeStyle = `rgba(0,0,0,${0.015 + Math.random() * 0.02})`;
+          roughCtx.lineWidth = 1;
+          roughCtx.beginPath(); roughCtx.moveTo(x, y);
+          roughCtx.quadraticCurveTo((x + x2) * 0.5 + (Math.random() - 0.5) * 8, (y + y2) * 0.5 + (Math.random() - 0.5) * 8, x2, y2);
+          roughCtx.stroke();
+        }
+        const colorMap = new THREE.CanvasTexture(colorCanvas);
+        colorMap.wrapS = colorMap.wrapT = THREE.RepeatWrapping;
+        colorMap.repeat.set(2.0, 2.0);
+        colorMap.magFilter = THREE.LinearFilter;
+        colorMap.minFilter = THREE.LinearMipmapLinearFilter;
+        colorMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        colorMap.needsUpdate = true;
+        const roughnessMap = new THREE.CanvasTexture(roughCanvas);
+        roughnessMap.wrapS = roughnessMap.wrapT = THREE.RepeatWrapping;
+        roughnessMap.repeat.set(2.0, 2.0);
+        roughnessMap.magFilter = THREE.LinearFilter;
+        roughnessMap.minFilter = THREE.LinearMipmapLinearFilter;
+        roughnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        roughnessMap.needsUpdate = true;
+        return { colorMap, roughnessMap };
+      }
+      const upholsteryMaps = createUpholsteryMaps();
+      const upholsteryTexture = upholsteryMaps.colorMap;
+      const upholsteryRoughnessTexture = upholsteryMaps.roughnessMap;
+
+      const dracoLoader = new DRACOLoader();
+      dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+      const loader = new GLTFLoader();
+      loader.setDRACOLoader(dracoLoader);
+      loader.load('assets/model7.glb', (gltf) => {
+        completeLoading(); // Completa a barra de carregamento
+        const model = gltf.scene;
+        loadedModel = model;
+
+        model.traverse((child) => {
+          if (child.isMesh) {
+              const childName = child.name.toLowerCase();
+              const isSofaObject = childName === 'estofado01' || childName === 'estofado02' || childName === 'estofado07';
+              const isDeckObject = isDeckMesh(child);
+            const isRailObject = isRailMesh(child);
+            const isCapObject = isCapMesh(child);
+
+              if (childName === 'object_281') objHardTop.push(child);
+              if (childName === 'object_1') objHardTopBase.push(child);
+              if (childName === 'object_43') objHardTopNoColor.push(child);
+              if (childName === 'semtop') objSemTop.push(child);
+
+              // --- CÉU / GROUND (MUITO ILUMINADO) ---
+              if (child.name === "ground") {
+                  child.material.emissive = new THREE.Color(0xffffff);
+                  child.material.emissiveIntensity = 0.78; // Evita céu estourado no fim do horizonte
+                  if (child.material.map) child.material.emissiveMap = child.material.map;
+                  child.material.side = THREE.DoubleSide;
+              }
+
+              // --- ÁGUA (PLANE) - EQUILÍBRIO DE ILUMINAÇÃO ---
+              if (child.name === "Plane") {
+                  // Azul mais fechado e acinzetado para combinar com a espuma.
+                  child.material.color.set(0x0f4f93); 
+                child.material.emissive = new THREE.Color(0x255375);
+                child.material.emissiveIntensity = 0.16;
+                  child.material.roughness = 0.09; // Baixo para highlight
+                  child.material.metalness = 0.92; // Alto para reflexo
+                  child.material.transparent = true;
+                  child.material.opacity = 0.97; // Visível
+                  // Normal map para ondas
+                  child.material.normalMap = waterNormal;
+                  child.material.normalScale.set(0.45, 0.45);
+                  // Reflexo do HDRI
+                  child.material.envMap = envMap;
+                  child.material.envMapIntensity = 1.25;
+              }
+
+                if (isSofaObject && child.material) {
+                  child.material = child.material.clone();
+                  child.material.color.set(0x7a4d25);
+                  child.material.map = upholsteryTexture;
+                  if ('roughnessMap' in child.material) {
+                    child.material.roughnessMap = upholsteryRoughnessTexture;
+                  }
+                  if ('bumpMap' in child.material) {
+                    child.material.bumpMap = upholsteryTexture;
+                    child.material.bumpScale = 0.012;
+                  }
+                  child.material.roughness = Math.max(child.material.roughness ?? 0.5, 0.58);
+                  child.material.metalness = Math.min(child.material.metalness ?? 0.05, 0.06);
+                  if ('clearcoat' in child.material && typeof child.material.clearcoat === 'number') {
+                    child.material.clearcoat = 0.22;
+                  }
+                  if ('clearcoatRoughness' in child.material && typeof child.material.clearcoatRoughness === 'number') {
+                    child.material.clearcoatRoughness = 0.5;
+                  }
+                  child.material.needsUpdate = true;
+                }
+
+                if (isRailObject && child.material) {
+                  if (Array.isArray(child.material)) {
+                    child.material = child.material.map((mat) => {
+                      const cloned = mat.clone();
+                      applyInoxMaterial(cloned);
+                      return cloned;
+                    });
+                  } else {
+                    child.material = child.material.clone();
+                    applyInoxMaterial(child.material);
+                  }
+                }
+
+                // Mais iluminação no objeto importado para destacar as cores.
+                if (child.name !== "ground" && child.name !== "Plane" && !isRailObject && child.material) {
+                  child.layers.set(BOAT_LAYER);
+                  child.material = child.material.clone();
+
+                  if ('emissive' in child.material) {
+                    child.material.emissive = new THREE.Color(0x000000);
+                    child.material.emissiveIntensity = 0.0;
+                    child.material.emissiveMap = null;
+                  }
+
+                  if ('envMapIntensity' in child.material) {
+                    child.material.envMapIntensity = 1.7;
+                  }
+
+                  if ('roughness' in child.material && typeof child.material.roughness === 'number') {
+                    child.material.roughness = Math.min(child.material.roughness, 0.42);
+                  }
+
+                  if ('metalness' in child.material && typeof child.material.metalness === 'number') {
+                    child.material.metalness = Math.min(child.material.metalness, 0.32);
+                  }
+                }
+
+              if (isSofaObject) objSofas.push(child);
+              if (child.name === "casco01" || child.name === "casco02" || child.name === "casco04" || child.name === "casco05") objExterno.push(child);
+              if (isCapObject) objTampas.push(child);
+              if (isDeckObject) objDeck.push(child);
+          }
+        });
+
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        model.position.sub(center);
+        model.position.y += 3.5; // Sobe o modelo 3D
+
+        // Inicia com a textura de teca ativa no deck.
+        applyDeckTexture(objDeck, currentDeckColor);
+
+        // Branco inicial do casco com menos estouro para manter detalhes visiveis.
+        currentHullColor = HULL_BASE_WHITE;
+        applyColor(objExterno, currentHullColor, {
+          emissiveScalar: 0.0,
+          emissiveIntensity: 0.0,
+          envMapIntensity: 0.7, // mais reflexo
+          roughnessCap: 0.38, // menos rugoso
+          metalnessCap: 0.85 // mais metálico
+        });
+        applyCapColorFromHull();
+
+        // Inicia com hard top visivel e semtop oculto.
+        setHardTopVisibility(true);
+
+        scene.add(model);
+        document.getElementById('info').style.display = 'none';
+      }, undefined, (error) => {
+          completeLoading(); // Completa o carregamento mesmo com erro
+          document.getElementById('info').textContent = 'Erro ao carregar modelo: ' + error.message;
+          document.getElementById('info').style.display = 'block';
+        });
+
+        // Funções auxiliares movidas para dentro do escopo principal
+        function isDeckName(name) {
+          if (!name) return false;
+          const n = name.toLowerCase();
+          return n.includes('deck01') || n.includes('deck02') || n.includes('deck03') || n.includes('deck06') || n.includes('desck06') || n.includes('deck');
+        }
+        function isRailName(name) {
+          if (!name) return false;
+          const n = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return n.includes('corrimao01') || n.includes('corrimao02') || n.includes('corrimao') || n.includes('handrail') || n.includes('rail') || n.includes('inox') || n.includes('aco 02') || n.includes('aco02') || n.includes('aco') || n.includes('steel');
+        }
+        function isCapName(name) {
+          if (!name) return false;
+          const n = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return n.includes('tampa') || n.includes('tampas') || n.includes('cap') || n.includes('cover');
+        }
+        function isDeckMesh(mesh) {
+          let current = mesh;
+          while (current) {
+            if (isDeckName(current.name)) return true;
+            current = current.parent;
+          }
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          return materials.some((mat) => mat && isDeckName(mat.name));
+        }
+        function isRailMesh(mesh) {
+          let current = mesh;
+          while (current) {
+            if (isRailName(current.name)) return true;
+            current = current.parent;
+          }
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          return materials.some((mat) => mat && isRailName(mat.name));
+        }
+        function isCapMesh(mesh) {
+          let current = mesh;
+          while (current) {
+            if (isCapName(current.name)) return true;
+            current = current.parent;
+          }
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          return materials.some((mat) => mat && isCapName(mat.name));
+        }
+        function getDarkerHex(hex, amount = 0.12) {
+          const base = new THREE.Color(hex);
+          const darker = base.clone().lerp(new THREE.Color(0x000000), amount);
+          return `#${darker.getHexString()}`;
+        }
+        function applyCapColorFromHull() {
+          if (!objTampas.length) return;
+          const darkerCapColor = getDarkerHex(currentHullColor, 0.13);
+          applyColor(objTampas, darkerCapColor, {
+            emissiveScalar: 0.02,
+            emissiveIntensity: 0.01,
+            envMapIntensity: 0.85,
+            roughnessCap: 0.68,
+            metalnessCap: 0.08
+          });
+        }
+        function applyInoxMaterial(mat) {
+          if (!mat) return;
+          if ('color' in mat && mat.color) {
+            mat.color.set(0xc7ccd1);
+          }
+          if ('map' in mat) mat.map = null;
+          if ('bumpMap' in mat) mat.bumpMap = null;
+          if ('normalMap' in mat) mat.normalMap = null;
+          if ('roughness' in mat && typeof mat.roughness === 'number') {
+            mat.roughness = 0.16;
+          }
+          if ('metalness' in mat && typeof mat.metalness === 'number') {
+            mat.metalness = 1.0;
+          }
+          if ('envMapIntensity' in mat && typeof mat.envMapIntensity === 'number') {
+            mat.envMapIntensity = 2.4;
+          }
+          if ('emissive' in mat) {
+            mat.emissive = new THREE.Color(0x000000);
+            mat.emissiveIntensity = 0.0;
+            mat.emissiveMap = null;
+          }
+          if ('clearcoat' in mat && typeof mat.clearcoat === 'number') {
+            mat.clearcoat = 1.0;
+          }
+          if ('clearcoatRoughness' in mat && typeof mat.clearcoatRoughness === 'number') {
+            mat.clearcoatRoughness = 0.12;
+          }
+          mat.needsUpdate = true;
+        }
+
+      function applyColor(target, hex, options = {}) {
+        if (!target || (Array.isArray(target) && target.length === 0)) return;
+
+        const objects = Array.isArray(target) ? target : [target];
+        const selectedColor = new THREE.Color(hex);
+        const brightness = (selectedColor.r + selectedColor.g + selectedColor.b) / 3;
+        const emissiveScalar = options.emissiveScalar ?? 0.35;
+        const emissiveIntensity = options.emissiveIntensity ?? 0.2;
+        const envMapIntensity = options.envMapIntensity ?? 1.8;
+        const roughnessCap = options.roughnessCap ?? 0.46;
+        const metalnessCap = options.metalnessCap ?? 0.25;
+        const texture = options.texture;
+        const roughnessTexture = options.roughnessTexture;
+        const bumpScale = options.bumpScale ?? 0.012;
+
+        objects.forEach((object) => object.traverse((child) => {
+              if (child.isMesh) {
+                  child.material = child.material.clone();
+                  child.material.color.set(hex);
+
+          // REMOVE textura do casco
+          if (texture && 'map' in child.material && target !== objExterno) {
+            child.material.map = texture;
+            child.material.color.set(hex);
+            child.material.needsUpdate = true;
+            if ('combine' in child.material) {
+              child.material.combine = THREE.MultiplyOperation;
+            }
+          } else if (target === objExterno && 'map' in child.material) {
+            child.material.map = null;
+          }
+
+                  if (roughnessTexture && 'roughnessMap' in child.material) {
+                    child.material.roughnessMap = roughnessTexture;
+                  }
+                  if ('bumpMap' in child.material && texture && target !== objExterno) {
+                    child.material.bumpMap = texture;
+                    child.material.bumpScale = bumpScale;
+                  } else if ('bumpMap' in child.material && target === objExterno) {
+                    child.material.bumpMap = null;
+                  }
+
+                  if ('emissive' in child.material) {
+                    if (brightness < 0.06) {
+                      child.material.emissive = new THREE.Color(0x000000);
+                      child.material.emissiveIntensity = 0.0;
+                    } else {
+                      child.material.emissive = selectedColor.clone().multiplyScalar(emissiveScalar);
+                      child.material.emissiveIntensity = emissiveIntensity;
+                    }
+                    child.material.emissiveMap = null;
+                  }
+
+                  if ('envMapIntensity' in child.material) {
+                    child.material.envMapIntensity = envMapIntensity;
+                  }
+
+                  if ('roughness' in child.material && typeof child.material.roughness === 'number') {
+                    child.material.roughness = Math.max(child.material.roughness, roughnessCap);
+                  }
+
+                  if ('metalness' in child.material && typeof child.material.metalness === 'number') {
+                    child.material.metalness = Math.min(child.material.metalness, metalnessCap);
+                  }
+
+                  child.material.needsUpdate = true;
+                  }
+        }));
+      }
+
+      function applyDeckMaterial(mat, colorHex = currentDeckColor) {
+        if (!mat) return;
+
+        mat.map = teakTexture;
+
+        if ('color' in mat && mat.color) {
+          mat.color.set(colorHex);
+        }
+
+        if ('emissive' in mat) {
+          mat.emissive = new THREE.Color(0x000000);
+          mat.emissiveIntensity = 0.0;
+          mat.emissiveMap = null;
+        }
+
+        if ('roughness' in mat && typeof mat.roughness === 'number') {
+          mat.roughness = 0.88;
+        }
+
+        if ('metalness' in mat && typeof mat.metalness === 'number') {
+          mat.metalness = 0.02;
+        }
+
+        if ('transmission' in mat && typeof mat.transmission === 'number') {
+          mat.transmission = 0.0;
+        }
+
+        if ('transparent' in mat) {
+          mat.transparent = false;
+        }
+
+        if ('opacity' in mat && typeof mat.opacity === 'number') {
+          mat.opacity = 1.0;
+        }
+
+        if ('envMapIntensity' in mat) {
+          mat.envMapIntensity = 0.45;
+        }
+
+        mat.needsUpdate = true;
+      }
+
+      function applyDeckTexture(target, colorHex = currentDeckColor) {
+        if (!target || target.length === 0) return;
+
+        target.forEach((object) => object.traverse((child) => {
+          if (!child.isMesh || !child.material) return;
+
+          if (Array.isArray(child.material)) {
+            child.material = child.material.map((mat) => {
+              const cloned = mat.clone();
+              applyDeckMaterial(cloned, colorHex);
+              return cloned;
+            });
+          } else {
+            child.material = child.material.clone();
+            applyDeckMaterial(child.material, colorHex);
+          }
+        }));
+      }
+
+      function collectDeckObjects() {
+        objDeck.length = 0;
+        if (!loadedModel) return;
+
+        loadedModel.traverse((child) => {
+          if (child.isMesh && isDeckMesh(child)) {
+            objDeck.push(child);
+          }
+        });
+      }
+
+      function setHardTopVisibility(showHardTop) {
+        objHardTopBase.forEach((object) => {
+          object.visible = showHardTop;
+        });
+        objHardTop.forEach((object) => {
+          object.visible = showHardTop;
+        });
+        objHardTopNoColor.forEach((object) => {
+          object.visible = showHardTop;
+        });
+        objSemTop.forEach((object) => {
+          object.visible = !showHardTop;
+        });
+      }
+
+      function isHardTopVisible() {
+        return [...objHardTopBase, ...objHardTop, ...objHardTopNoColor].some((object) => object.visible);
+      }
+
+      document.getElementById('btnSofas').onclick = () => toggleMenu('pickerSofas', 'btnSofas');
+      document.getElementById('btnExterno').onclick = () => toggleMenu('pickerExterno', 'btnExterno');
+      document.getElementById('btnDeck').onclick = () => toggleMenu('pickerDeck', 'btnDeck');
+      document.getElementById('btnHardTop').onclick = () => toggleMenu('pickerHardTop', 'btnHardTop');
+
+      function toggleMenu(id, btnId) {
+        const pickers = ['pickerSofas', 'pickerExterno', 'pickerDeck', 'pickerHardTop'];
+        const btns = ['btnSofas', 'btnExterno', 'btnDeck', 'btnHardTop'];
+        pickers.forEach(pid => {
+          if (pid !== id) document.getElementById(pid).classList.remove('show');
+        });
+        btns.forEach(bid => {
+          if (bid !== btnId) document.getElementById(bid).classList.remove('active');
+        });
+        const picker = document.getElementById(id);
+        const btn = document.getElementById(btnId);
+        const isOpen = picker.classList.contains('show');
+        if (isOpen) {
+          picker.classList.remove('show');
+          btn.classList.remove('active');
+        } else {
+          picker.classList.add('show');
+          btn.classList.add('active');
+        }
+      }
+
+      document.querySelectorAll('.color-box').forEach(box => {
+          box.onclick = (e) => {
+              const color = e.target.getAttribute('data-color');
+              const parentId = e.target.parentElement.id;
+              if (parentId === 'pickerSofas') {
+                applyColor(objSofas, color, {
+                  emissiveScalar: 0.14,
+                  emissiveIntensity: 0.08,
+                  envMapIntensity: 1.0,
+                  roughnessCap: 0.58,
+                  metalnessCap: 0.06,
+                  texture: upholsteryTexture,
+                  roughnessTexture: upholsteryRoughnessTexture,
+                  bumpScale: 0.012
+                });
+              }
+              if (parentId === 'pickerExterno') {
+                currentHullColor = color;
+                const isWhiteHullColor = color.toLowerCase() === HULL_BASE_WHITE;
+                applyColor(objExterno, color, {
+                  emissiveScalar: isWhiteHullColor ? 0.0 : 0.12,
+                  emissiveIntensity: isWhiteHullColor ? 0.0 : 0.05,
+                  envMapIntensity: isWhiteHullColor ? 0.7 : 1.05,
+                  roughnessCap: isWhiteHullColor ? 0.38 : 0.6,
+                  metalnessCap: isWhiteHullColor ? 0.85 : 0.14
+                });
+                applyCapColorFromHull();
+              }
+              if (parentId === 'pickerDeck') {
+                currentDeckColor = color;
+                collectDeckObjects();
+                applyDeckTexture(objDeck, currentDeckColor);
+              }
+              if (parentId === 'pickerHardTop') {
+                const action = e.target.getAttribute('data-action');
+                if (action === 'remove-hardtop') {
+                  setHardTopVisibility(!isHardTopVisible());
+                  return;
+                }
+
+                if (color) {
+                  const targetHardTop = isHardTopVisible()
+                    ? [...objHardTop, ...objHardTopBase]
+                    : objSemTop;
+
+                  applyColor(targetHardTop, color, {
+                    emissiveScalar: 0.06,
+                    emissiveIntensity: 0.03,
+                    envMapIntensity: 1.2,
+                    roughnessCap: 0.5,
+                    metalnessCap: 0.2
+                  });
+                }
+              }
+          };
+      });
+
+      // --- BOTÃO OTIMIZAR/RESTAURAR ---
+      let ambienteOtimizado = false;
+      const btnOptimize = document.getElementById('btnOptimize');
+      const footer = document.getElementById('footer');
+      btnOptimize.onclick = () => {
+        if (!ambienteOtimizado) {
+          // OTIMIZAR: Mantém luzes e envMap, só troca fundo e remove água/espuma
+          scene.background = createSkyGradientTexture(); // Fundo gradiente realista
+          if (waterPlane && scene.children.includes(waterPlane)) scene.remove(waterPlane);
+          if (foamPlane && scene.children.includes(foamPlane)) scene.remove(foamPlane);
+          btnOptimize.innerHTML = '<img src="assets/visibility.svg" class="icon-svg" alt="Visibility"> Ativar Ambiente';
+          footer.classList.add('optimized');
+          ambienteOtimizado = true;
+        } else {
+          // RESTAURAR: Volta ambiente original
+          scene.background = envMap;
+          if (waterPlane && !scene.children.includes(waterPlane)) scene.add(waterPlane);
+          if (foamPlane && !scene.children.includes(foamPlane)) scene.add(foamPlane);
+          btnOptimize.innerHTML = '<img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Otimizar';
+          footer.classList.remove('optimized');
+          ambienteOtimizado = false;
+        }
+      };
+
+      // Iniciar otimizado no mobile
+      if (isMobile) {
+        btnOptimize.onclick();
+      }
+
+      // --- BOTÃO ESCONDER/MOSTRAR UI ---
+      let uiVisible = true;
+      const btnToggleUI = document.getElementById('btnToggleUI');
+      const controlsContainer = document.querySelector('.controls-container');
+      btnToggleUI.onclick = () => {
+        uiVisible = !uiVisible;
+        if (uiVisible) {
+          controlsContainer.style.display = 'flex';
+          btnToggleUI.innerHTML = '<img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Esconder UI';
+        } else {
+          controlsContainer.style.display = 'none';
+          // Mostra um pequeno botão flutuante para reativar
+          const toggleBtn = document.createElement('button');
+          toggleBtn.id = 'floatingToggle';
+          toggleBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; background: #222; color: #fff; border: 2px solid #8fa7c2; border-radius: 8px; cursor: pointer; z-index: 102; font-size: 12px;';
+          toggleBtn.innerHTML = 'Mostrar UI';
+          toggleBtn.onclick = () => {
+            uiVisible = true;
+            controlsContainer.style.display = 'flex';
+            btnToggleUI.innerHTML = '<img src="assets/visibility_off.svg" class="icon-svg" alt="Visibility"> Esconder UI';
+            toggleBtn.remove();
+          };
+          document.body.appendChild(toggleBtn);
+        }
+      };
+
+      // Função para criar textura gradiente vertical (céu confortável)
+      function createSkyGradientTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+        gradient.addColorStop(0, '#b7cbe3'); // topo, azul acinzetado claro
+        gradient.addColorStop(0.5, '#8fa7c2'); // meio, azul médio suave
+        gradient.addColorStop(1, '#6b7c93'); // base, azul acinzetado escuro
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1, 512);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearFilter;
+        return texture;
+      }
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      window.onresize = () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      };
+      animate();
+      })(); // <-- fechamento correto da função assíncrona
+  </script>
+</body>
+</html>
