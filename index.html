@@ -383,6 +383,24 @@
       // Detecta mobile/tela pequena
       const isMobile = /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth < 700;
 
+      // Função para criar textura gradiente vertical (céu confortável) - MOVIDO PARA O INÍCIO
+      function createSkyGradientTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+        gradient.addColorStop(0, '#b7cbe3'); // topo, azul acinzetado claro
+        gradient.addColorStop(0.5, '#8fa7c2'); // meio, azul médio suave
+        gradient.addColorStop(1, '#6b7c93'); // base, azul acinzetado escuro
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1, 512);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearFilter;
+        return texture;
+      }
+
       // Ajusta renderer para mobile
       if (isMobile) {
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -393,7 +411,12 @@
       // Carrega texturas
       const envMap = await loadEnvMap('assets/3dpea.com_environment.png');
       scene.environment = envMap;
-      scene.background = envMap;
+      // Mobile já inicia com background otimizado (gradiente)
+      if (isMobile) {
+        scene.background = createSkyGradientTexture();
+      } else {
+        scene.background = envMap;
+      }
       const foamTexture = textureLoader.load('assets/Foam.png');
       foamTexture.wrapS = foamTexture.wrapT = THREE.ClampToEdgeWrapping;
       foamTexture.repeat.set(1, 1);
@@ -443,7 +466,10 @@
       const waterPlane = new THREE.Mesh(waterGeometry, waterMaterial);
       waterPlane.rotation.x = -Math.PI / 2;
       waterPlane.position.y = 1;
-      scene.add(waterPlane);
+      // Só adiciona água se NÃO for mobile (mobile já inicia otimizado)
+      if (!isMobile) {
+        scene.add(waterPlane);
+      }
 
       // Ajusta anisotropy das texturas de estofado em mobile
       function createUpholsteryMaps() {
@@ -555,7 +581,10 @@
       const foamPlane = new THREE.Mesh(foamGeometry, foamMaterial);
       foamPlane.rotation.x = -Math.PI / 2;
       foamPlane.position.set(-65.0, 1.08, 0);
-      scene.add(foamPlane);
+      // Só adiciona espuma se NÃO for mobile (mobile já inicia otimizado)
+      if (!isMobile) {
+        scene.add(foamPlane);
+      }
 
       // --- OBJETOS E TEXTURAS DE ESTOFADO ---
       const objSofas = [], objExterno = [], objTampas = [], objDeck = [];
@@ -1100,9 +1129,14 @@
       });
 
       // --- BOTÃO OTIMIZAR/RESTAURAR ---
-      let ambienteOtimizado = false;
+      let ambienteOtimizado = isMobile ? true : false; // Já inicia otimizado no mobile
       const btnOptimize = document.getElementById('btnOptimize');
       const footer = document.getElementById('footer');
+      // Se mobile, já atualiza o botão e footer no estado otimizado
+      if (isMobile) {
+        btnOptimize.innerHTML = '<img src="assets/visibility.svg" class="icon-svg" alt="Visibility"> Ativar Ambiente';
+        footer.classList.add('optimized');
+      }
       btnOptimize.onclick = () => {
         if (!ambienteOtimizado) {
           // OTIMIZAR: Mantém luzes e envMap, só troca fundo e remove água/espuma
@@ -1122,11 +1156,6 @@
           ambienteOtimizado = false;
         }
       };
-
-      // Iniciar otimizado no mobile
-      if (isMobile) {
-        btnOptimize.onclick();
-      }
 
       // --- BOTÃO ESCONDER/MOSTRAR UI ---
       let uiVisible = true;
@@ -1153,24 +1182,6 @@
           document.body.appendChild(toggleBtn);
         }
       };
-
-      // Função para criar textura gradiente vertical (céu confortável)
-      function createSkyGradientTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 512);
-        gradient.addColorStop(0, '#b7cbe3'); // topo, azul acinzetado claro
-        gradient.addColorStop(0.5, '#8fa7c2'); // meio, azul médio suave
-        gradient.addColorStop(1, '#6b7c93'); // base, azul acinzetado escuro
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 1, 512);
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.magFilter = THREE.LinearFilter;
-        texture.minFilter = THREE.LinearFilter;
-        return texture;
-      }
 
       function animate() {
         requestAnimationFrame(animate);
